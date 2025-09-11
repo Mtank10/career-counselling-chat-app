@@ -1,15 +1,58 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+// prisma/schema.prisma
+datasource db {
+  provider  = "postgresql"
+  url  	    = env("DATABASE_URL")
+  // uncomment next line if you use Prisma <5.10
+  // directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+model users {
+  id  String @id @default(cuid())
+  email String @unique
+  name  String
+  password_hash String
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  //create indx on email
+  @@index([email])
+  chat_sessions chat_sessions[]
+}
+
+model chat_sessions {
+  id String @id @default(cuid())
+  user_id String
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  title String @default("New Chat")
+  topic String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  is_active Boolean @default(true)
+
+ @@index([user_id])
+  @@index([created_at])
+  
+  messages messages[]
+}
+
+model messages {
+   id String @id @default(cuid())
+    chat_session_id String
+    chat_session chat_sessions @relation(fields: [chat_session_id], references: [id], onDelete: Cascade)
+    role Role
+    content String
+    ai_model String?
+    tokens Int?
+    created_at DateTime @default(now())
+    sequence_number Int
+
+  @@index([chat_session_id])
+  @@index([chat_session_id, sequence_number])
+  @@index([created_at])
+}
+
+enum Role {
+  system
+  user
+  assistant
 }
