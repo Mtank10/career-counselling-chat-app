@@ -8,7 +8,12 @@ export async function POST(request: NextRequest) {
     const { messages } = await request.json();
 
     // Convert messages to the format expected by our service
-    const formattedMessages = messages.map((msg: any) => ({
+    interface Message {
+      role: string;
+      content: string;
+    }
+
+    const formattedMessages: Message[] = messages.map((msg: Message) => ({
       role: msg.role,
       content: msg.content,
     }));
