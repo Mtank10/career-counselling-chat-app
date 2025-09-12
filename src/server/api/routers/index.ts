@@ -1,4 +1,5 @@
-import { createTRPCRouter } from "../../trpc";
+import { createTRPCRouter,publicProcedure } from "@/lib/trpc/server";
+
 import {chatRouter} from './chat'
 import { authRouter } from "./auth";
 

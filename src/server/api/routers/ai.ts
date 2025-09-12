@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
-import { HuggingFaceServce } from '../../service/ai/huggingface';
-
-const hfService = new HuggingFaceServce(process.env.HUGGINGFACE_API_KEY!);
+import { HuggingFaceService } from '@/server/service/ai/huggingface';
+const hfService = new HuggingFaceService(process.env.HUGGINGFACE_API_KEY!);
 
 export async function POST(request: NextRequest) {
   try {

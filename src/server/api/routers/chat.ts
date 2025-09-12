@@ -1,8 +1,7 @@
 import {z} from "zod";
-import { createTRPCRouter,publicProcedure } from "../../trpc";
-import { HuggingFaceServce } from "../../service/ai/huggingface";
-
-const hfService = new HuggingFaceServce(process.env.HUGGINGFACE_API_KEY!);
+import { createTRPCRouter,publicProcedure } from "@/lib/trpc/server";
+import { HuggingFaceService } from "@/server/service/ai/huggingface";
+const hfService = new HuggingFaceService(process.env.HUGGINGFACE_API_KEY!);
 
 export const chatRouter = createTRPCRouter({
     createSession: publicProcedure
@@ -76,6 +75,12 @@ export const chatRouter = createTRPCRouter({
           content: input.message,
           sequence_number: 1 + (await ctx.db.chatMessage.count({where:{chatSessionId:input.sessionId}}))
         }
+      });
+       
+      // Update session updatedAt timestamp
+      await ctx.db.chat_sessions.update({
+        where: { id: input.sessionId },
+        data: { updatedAt: new Date() },
       });
 
       //get conversation history for context

@@ -1,8 +1,8 @@
 import {z} from "zod";
-import { createTRPCRouter,publicProcedure } from "../../trpc";
+import { createTRPCRouter,publicProcedure } from "@/lib/trpc/server";
 
 import { hashPassword,verifyPassword } from "../../utils";
-import { db } from "../../db";
+import { db } from "../../../lib/db/db";
 
 export const authRouter = createTRPCRouter({
     signUp: publicProcedure
@@ -75,7 +75,6 @@ export const authRouter = createTRPCRouter({
           id: true,
           email: true,
           name: true,
-          image: true,
         },
       });
 
