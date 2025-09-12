@@ -85,7 +85,12 @@ export const chatRouter = createTRPCRouter({
       });
 
       //format messages for hugging face api
-      const messageForAI = previousMessages.map(msg=>({
+      interface PreviousMessage {
+        role: string;
+        content: string;
+      }
+
+      const messageForAI: PreviousMessage[] = previousMessages.map((msg: PreviousMessage) => ({
         role: msg.role,
         content: msg.content,
       }));
