@@ -25,19 +25,19 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await db.user.findUnique({
+        const user = await db.users.findUnique({
           where: {
             email: credentials.email
           }
         });
 
-        if (!user || !user.password) {
+        if (!user ) {
           return null;
         }
 
         const isPasswordValid = await verifyPassword(
           credentials.password,
-          user.password
+          user.password_hash
         );
 
         if (!isPasswordValid) {
@@ -48,7 +48,6 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-          image: user.image,
         };
       }
     })

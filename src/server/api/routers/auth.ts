@@ -12,7 +12,7 @@ export const authRouter = createTRPCRouter({
         password: z.string().min(6)
     }))
     .mutation(async ({ctx,input})=>{
-        const existingUser = await ctx.db.user.findUnique({
+        const existingUser = await ctx.db.users.findUnique({
             where:{email:input.email},
         });
         if(existingUser){
@@ -21,11 +21,11 @@ export const authRouter = createTRPCRouter({
 
         const passwordHash = await hashPassword(input.password)
 
-        const user = await ctx.db.user.create({
+        const user = await ctx.db.users.create({
             data:{
                 email:input.email,
                 name:input.name,
-                passwordHash,
+                password_hash: passwordHash,
             }
         });
         return {
@@ -41,15 +41,15 @@ export const authRouter = createTRPCRouter({
       password: z.string().min(6),
     }))
     .mutation(async ({ ctx, input }) => {
-      const user = await ctx.db.user.findUnique({
+      const user = await ctx.db.users.findUnique({
         where: { email: input.email },
       });
 
-      if (!user || !user.passwordHash) {
+      if (!user || !user.password_hash) {
         throw new Error('Invalid credentials');
       }
 
-      const isValidPassword = await verifyPassword(input.password, user.passwordHash);
+      const isValidPassword = await verifyPassword(input.password, user.password_hash);
 
       if (!isValidPassword) {
         throw new Error('Invalid credentials');
@@ -69,7 +69,7 @@ export const authRouter = createTRPCRouter({
         return null;
       }
 
-      const user = await ctx.db.user.findUnique({
+      const user = await ctx.db.users.findUnique({
         where: { id: input.userId },
         select: {
           id: true,

@@ -127,6 +127,24 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
         </button>
       </form>
       
+      {/* //if  user first onthis applcation it sould redirect to signup after cliekt csignup linl*/}
+      <div className="mt-4 text-center">
+        {mode === 'signin' ? (
+          <p className="text-sm">
+            Don't have an account?{' '}
+            <a href="/auth/signup" className="text-blue-600 hover:underline">
+              Sign Up
+            </a>
+          </p>
+        ) : (
+          <p className="text-sm">
+            Already have an account?{' '}
+            <a href="/auth/signin" className="text-blue-600 hover:underline">
+              Sign In
+            </a>
+          </p>
+        )}
+      </div>
       
     </div>
   );

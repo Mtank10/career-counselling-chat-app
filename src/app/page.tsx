@@ -2,11 +2,23 @@
 
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
-import CareerChat from '@/components/CareerChat';
-import { Navigation } from '@/components/Navigation';
+import { ChatSidebar } from '@/components/ChatSidebar';
+import { ChatInterface } from '@/components/ChatInterface';
+import { useChat } from '@/hooks/useChat';
 
 export default function Home() {
   const { data: session, status } = useSession();
+
+  const {
+    sessions,
+    currentSession,
+    isLoading,
+    sendMessage,
+    createNewSession,
+    selectSession,
+    // deleteSession,
+    currentSessionId
+  } = useChat();
 
   if (status === 'loading') {
     return (
@@ -21,9 +33,21 @@ export default function Home() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      <Navigation />
-      <CareerChat />
+    <div className="flex h-screen bg-background">
+      <ChatSidebar
+        sessions={sessions}
+        onNewChat={createNewSession}
+        onSelectSession={selectSession}
+        // onDeleteSession={deleteSession}
+        activeSessionId={currentSessionId}
+      />
+      <div className="flex-1">
+        <ChatInterface
+          messages={currentSession?.messages || []}
+          onSendMessage={sendMessage}
+          isLoading={isLoading}
+        />
+      </div>
     </div>
   );
 }
