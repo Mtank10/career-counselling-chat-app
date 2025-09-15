@@ -105,7 +105,7 @@ export const chatRouter = createTRPCRouter({
        
       if (messageCount === 0) {
         const title = input.message.length > 40 
-          ? input.message.substring(0, 40) + '...' 
+          ? input.message.substring(0, 10) + '...' 
           : input.message;
         
         await ctx.db.chat_sessions.update({

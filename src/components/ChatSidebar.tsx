@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Plus, MessageSquare, Briefcase, User, Settings, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 interface ChatSession {
   id: string;
@@ -29,6 +30,12 @@ export const ChatSidebar = ({
   onDeleteSession,
   activeSessionId 
 }: ChatSidebarProps) => {
+  
+  useEffect(() => {
+    // This effect runs whenever sessions change
+  }, [sessions]);
+
+  
   return (
     <div className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col h-full">
       {/* Header */}
