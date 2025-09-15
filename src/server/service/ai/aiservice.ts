@@ -26,8 +26,9 @@ export class GoogleGeminiService {
       });
 
       return response.text.trim();
-    } catch (error: any) {
-      if (error?.code === 503 && attempt < maxRetries) {
+    } catch (error) {
+      const err = error as { code?: number; message?: string };
+      if (err?.code === 503 && attempt < maxRetries) {
         console.warn(`Model overloaded, retrying attempt ${attempt} after delay...`);
         await new Promise(res => setTimeout(res, retryDelay));
       } else {

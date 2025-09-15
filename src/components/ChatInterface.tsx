@@ -86,7 +86,7 @@ export const ChatInterface = ({ messages, onSendMessage, isLoading }: ChatInterf
               How can I help with your career?
             </h1>
             <p className="text-muted-foreground text-lg">
-              Welcome to your AI career counselor. Let's discuss your professional journey.
+              Welcome to your AI career counselor. Let &apos s discuss your professional journey.
             </p>
           </div>
 

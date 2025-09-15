@@ -89,22 +89,22 @@ export const chatRouter = createTRPCRouter({
         throw new Error('Session not found or access denied');
       }
 
-      // Get current message count for sequence number
-      const messageCount = await ctx.db.messages.count({
-        where: { chat_session_id: input.sessionId },
-      });
-
-      // Create user message immediately
+      // Create user message
       const userMessage = await ctx.db.messages.create({
         data: {
           chat_session_id: input.sessionId,
           role: 'user',
           content: input.message,
-          sequence_number: messageCount + 1,
+          sequence_number: (await ctx.db.messages.count({
+            where: { chat_session_id: input.sessionId },
+          })) + 1,
         },
       });
-
-      // Update session title if it's the first message
+      const messageCount = await ctx.db.messages.count({
+        where: { chat_session_id: input.sessionId },
+      });
+      
+       // Update session title if it's the first message
       if (messageCount === 0) {
         const title = input.message.length > 40 
           ? input.message.substring(0, 40) + '...' 
@@ -121,13 +121,11 @@ export const chatRouter = createTRPCRouter({
           data: { updated_at: new Date() },
         });
       }
+      
 
-      // Get conversation history for context (excluding the just-created message)
+      // Get conversation history for context
       const previousMessages = await ctx.db.messages.findMany({
-        where: { 
-          chat_session_id: input.sessionId,
-          id: { not: userMessage.id } // Exclude the current user message
-        },
+        where: { chat_session_id: input.sessionId },
         orderBy: { created_at: 'asc' },
       });
 
@@ -140,41 +138,34 @@ export const chatRouter = createTRPCRouter({
       // Add the current user message
       messagesForAI.push({ role: 'user', content: input.message });
 
-      // Generate AI response using Gemini (non-blocking)
-      let aiResponse = "I'm thinking...";
-      
-      // Send the AI response generation to the background
-      setTimeout(async () => {
-        try {
-          const fullAiResponse = await openaiService.generateResponse(messagesForAI);
-          
-          // Update the AI message with the actual response
-          await ctx.db.messages.update({
-            where: { id: aiMessage.id },
-            data: { content: fullAiResponse },
-          });
-        } catch (error) {
-          console.error("Error generating AI response:", error);
-          await ctx.db.messages.update({
-            where: { id: aiMessage.id },
-            data: { content: "Sorry, I encountered an error processing your request." },
-          });
-        }
-      }, 0);
+      // Generate AI response using Hugging Face
+      const aiResponse = await openaiService.generateResponse(messagesForAI);
 
-      // Create AI message immediately with a placeholder
+      // Create AI message
       const aiMessage = await ctx.db.messages.create({
         data: {
           chat_session_id: input.sessionId,
           role: 'assistant',
-          content: aiResponse, // Placeholder
-          sequence_number: messageCount + 2,
+          content: aiResponse,
+          sequence_number: userMessage.sequence_number + 1,
         },
       });
 
+      // Update session title if it's the first message
+      if (previousMessages.length === 0) {
+        const title = input.message.length > 40 
+          ? input.message.substring(0, 40) + '...' 
+          : input.message;
+        
+        await ctx.db.chat_sessions.update({
+          where: { id: input.sessionId },
+          data: { title },
+        });
+      }
+
       return {
         userMessage,
-        aiMessage: { ...aiMessage, content: "Thinking..." }, // Return placeholder
+        aiMessage,
       };
     }),
 

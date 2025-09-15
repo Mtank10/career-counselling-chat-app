@@ -51,9 +51,9 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
           router.push('/');
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
-    } finally {
+    } catch (error) {
+      console.error("Error verifying token", error instanceof Error ? error.message : 'Unknown error');
+    }   finally {
       setIsLoading(false);
     }
   };
@@ -131,7 +131,7 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
       <div className="mt-4 text-center">
         {mode === 'signin' ? (
           <p className="text-sm">
-            Don't have an account?{' '}
+            Don &apos t have an account?{' '}
             <a href="/auth/signup" className="text-blue-600 hover:underline">
               Sign Up
             </a>
