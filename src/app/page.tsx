@@ -40,9 +40,6 @@ export default function Home() {
         onSelectSession={selectSession}
         onDeleteSession={deleteSession}
         activeSessionId={currentSessionId}
-        isLoadingSessions={isLoadingSessions}
-        isDeletingSession={isDeletingSession}
-        isCreatingSession={isCreatingSession}
       />
       <div className="flex-1">
         <ChatInterface

@@ -3,125 +3,105 @@
 import { useState, useCallback } from "react";
 import { trpc } from '@/lib/trpc/client';
 
+export interface Message {
+  id: string;
+  content: string;
+  role: "user" | "assistant";
+  timestamp: Date;
+}
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  messages: Message[];
+  lastMessage: string;
+  timestamp: Date;
+}
+
 export const useChat = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isDeletingSession, setIsDeletingSession] = useState<string | null>(null);
   
+  // tRPC queries and mutations
   const utils = trpc.useUtils();
-  const { data: sessions = [], refetch: refetchSessions, isLoading: isLoadingSessions } = trpc.chat.getSessions.useQuery();
+  const { data: sessions = [], refetch: refetchSessions } = trpc.chat.getSessions.useQuery();
   const { data: currentSession, refetch: refetchSession } = trpc.chat.getSession.useQuery(
     { id: currentSessionId! },
     { enabled: !!currentSessionId }
   );
-  
   const createSession = trpc.chat.createSession.useMutation();
   const sendMessageMutation = trpc.chat.sendMessage.useMutation();
-  const deleteSession = trpc.chat.deleteSession.useMutation();
+   const deleteSession = trpc.chat.deleteSession.useMutation();
+
+  const createNewSession = useCallback(async () => {
+    const session = await createSession.mutateAsync({});
+    setCurrentSessionId(session.id);
+    await refetchSessions();
+    return session.id;
+  }, [createSession, refetchSessions]);
 
   const sendMessage = useCallback(async (content: string) => {
-    setError(null);
-    
+    if (!content.trim()) return;
+
     let sessionId = currentSessionId;
     
     // Create a new session if none exists
     if (!sessionId) {
-      try {
-        const session = await createSession.mutateAsync({});
-        sessionId = session.id;
-        setCurrentSessionId(sessionId);
-        await refetchSessions();
-      } catch (err: any) {
-        setError('Failed to create chat session');
-        throw err;
-      }
+      sessionId = await createNewSession();
     }
 
-    try {
-      await sendMessageMutation.mutateAsync({
-        sessionId: sessionId!,
-        message: content,
-      });
+    await sendMessageMutation.mutateAsync({
+      sessionId: sessionId!,
+      message: content,
+    });
 
-      // Refresh the session to get updated messages
-      await refetchSession();
-      
-    } catch (err: any) {
-      setError(err.message || 'Failed to send message');
-      throw err;
-    }
-  }, [currentSessionId, createSession, sendMessageMutation, refetchSession, refetchSessions]);
-
-  const createNewSession = useCallback(async () => {
-    setError(null);
-    try {
-      const session = await createSession.mutateAsync({});
-      setCurrentSessionId(session.id);
-      await refetchSessions();
-      return session.id;
-    } catch (err: any) {
-      setError('Failed to create new chat session');
-      throw err;
-    }
-  }, [createSession, refetchSessions]);
+    // Refresh the session to get updated messages
+    await refetchSession();
+  }, [currentSessionId, createNewSession, sendMessageMutation, refetchSession]);
 
   const selectSession = useCallback((sessionId: string) => {
     setCurrentSessionId(sessionId);
-    setError(null);
   }, []);
 
   const handleDeleteSession = useCallback(async (sessionId: string) => {
-    setIsDeletingSession(sessionId);
-    try {
-      await deleteSession.mutateAsync({ id: sessionId });
-      await refetchSessions();
-      
-      if (currentSessionId === sessionId) {
-        setCurrentSessionId(null);
-      }
-    } catch (err: any) {
-      setError('Failed to delete chat session');
-      throw err;
-    } finally {
-      setIsDeletingSession(null);
+    await deleteSession.mutateAsync({ id: sessionId });
+    await refetchSessions();
+    
+    // If we're deleting the current session, clear it
+    if (currentSessionId === sessionId) {
+      setCurrentSessionId(null);
     }
   }, [currentSessionId, deleteSession, refetchSessions]);
 
   return {
-    sessions: sessions?.map(session => ({
+    sessions: sessions.map(session => ({
       id: session.id,
       title: session.title,
       lastMessage: session.messages[0]?.content || "",
-      timestamp: session.updatedAt,
+      timestamp: session.updated_at,
       messages: session.messages.map(msg => ({
         id: msg.id,
         content: msg.content,
         role: msg.role as "user" | "assistant",
-        timestamp: msg.createdAt,
+        timestamp: msg.created_at,
       })),
-    })) || [],
+    })),
     currentSession: currentSession ? {
       id: currentSession.id,
       title: currentSession.title,
       lastMessage: currentSession.messages[currentSession.messages.length - 1]?.content || "",
-      timestamp: currentSession.updatedAt,
+      timestamp: currentSession.updated_at,
       messages: currentSession.messages.map(msg => ({
         id: msg.id,
         content: msg.content,
         role: msg.role as "user" | "assistant",
-        timestamp: msg.createdAt,
+        timestamp: msg.created_at,
       })),
     } : null,
-    isLoading: sendMessageMutation.isPending || createSession.isPending,
-    isLoadingSessions,
-    isDeletingSession,
-    isCreatingSession: createSession.isPending,
-    error,
+    isLoading: sendMessageMutation.isPending,
     sendMessage,
     createNewSession,
     selectSession,
     deleteSession: handleDeleteSession,
     currentSessionId,
-    clearError: () => setError(null),
   };
 };
