@@ -1,4 +1,4 @@
-//@ts-nocheck
+
 import {NextAuthOptions} from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import {db} from "./db/db";
@@ -56,7 +56,7 @@ export const authOptions: NextAuthOptions = {
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
-                const u = user 
+                const u = user as typeof user & { id: string };
                 return {
                     ...token,
                     id: u.id,
