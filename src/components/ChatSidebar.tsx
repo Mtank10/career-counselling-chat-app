@@ -3,9 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Plus, MessageSquare, Briefcase, User, Settings, Trash2 } from "lucide-react";
+import { Plus, MessageSquare, Briefcase, User, Settings, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
 
 interface ChatSession {
   id: string;
@@ -21,6 +20,9 @@ interface ChatSidebarProps {
   onSelectSession: (sessionId: string) => void;
   onDeleteSession: (sessionId: string) => void;
   activeSessionId?: string;
+  isLoadingSessions?: boolean;
+  isDeletingSession?: string | null;
+  isCreatingSession?: boolean;
 }
 
 export const ChatSidebar = ({ 
@@ -28,13 +30,11 @@ export const ChatSidebar = ({
   onNewChat, 
   onSelectSession, 
   onDeleteSession,
-  activeSessionId 
+  activeSessionId,
+  isLoadingSessions = false,
+  isDeletingSession = null,
+  isCreatingSession = false
 }: ChatSidebarProps) => {
-  
-  useEffect(() => {
-    // This effect runs whenever sessions change
-  }, [sessions]);
-
   
   return (
     <div className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col h-full">
@@ -54,52 +54,90 @@ export const ChatSidebar = ({
           onClick={onNewChat}
           className="w-full bg-sidebar-primary hover:bg-sidebar-accent text-white border-1"
           size="sm"
+          disabled={isCreatingSession}
         >
-          <Plus className="w-4 h-4 mr-2" />
-          New Conversation
+          {isCreatingSession ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Plus className="w-4 h-4 mr-2" />
+          )}
+          {isCreatingSession ? "Creating..." : "New Conversation"}
         </Button>
       </div>
 
       {/* Chat Sessions */}
       <ScrollArea className="flex-1 p-2">
-        <div className="space-y-1">
-          {sessions.map((session) => (
-            <div
-              key={session.id}
-              className={cn(
-                "group p-3 rounded-lg transition-colors hover:bg-gray-600 relative",
-                activeSessionId === session.id && "bg-sidebar-accent border border-sidebar-ring"
-              )}
-            >
-              <button
-                onClick={() => onSelectSession(session.id)}
-                className="w-full text-left"
-              >
+        {isLoadingSessions ? (
+          <div className="space-y-2 p-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-3 rounded-lg bg-sidebar-accent/30 animate-pulse">
                 <div className="flex items-start gap-2">
-                  <MessageSquare className="w-4 h-4 mt-0.5 text-white/60 flex-shrink-0 " />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-white truncate">
-                      {session.title}
-                    </p>
-                    <p className="text-xs text-white/60 truncate">
-                      {session.lastMessage}
-                    </p>
-                    <p className="text-xs text-sidebar-foreground/40 mt-1">
-                      {session.timestamp.toLocaleDateString()}
-                    </p>
+                  <div className="w-4 h-4 mt-0.5 rounded bg-white/20"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-white/20 rounded w-3/4"></div>
+                    <div className="h-3 bg-white/20 rounded w-full"></div>
+                    <div className="h-2 bg-white/20 rounded w-1/2"></div>
                   </div>
                 </div>
-              </button>
-              
-              <button
-                onClick={() => onDeleteSession(session.id)}
-                className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 p-1 text-sidebar-foreground/60 hover:text-destructive"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {sessions.length === 0 ? (
+              <div className="p-3 text-center text-white/60 text-sm">
+                No conversations yet. Start a new one!
+              </div>
+            ) : (
+              sessions.map((session) => (
+                <div
+                  key={session.id}
+                  className={cn(
+                    "group p-3 rounded-lg transition-colors hover:bg-gray-600 relative",
+                    activeSessionId === session.id && "bg-sidebar-accent border border-sidebar-ring"
+                  )}
+                >
+                  <button
+                    onClick={() => onSelectSession(session.id)}
+                    className="w-full text-left"
+                    disabled={isDeletingSession === session.id}
+                  >
+                    <div className="flex items-start gap-2">
+                      {isDeletingSession === session.id ? (
+                        <Loader2 className="w-4 h-4 mt-0.5 text-white/60 animate-spin flex-shrink-0" />
+                      ) : (
+                        <MessageSquare className="w-4 h-4 mt-0.5 text-white/60 flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-white truncate">
+                          {session.title}
+                        </p>
+                        <p className="text-xs text-white/60 truncate">
+                          {session.lastMessage}
+                        </p>
+                        <p className="text-xs text-sidebar-foreground/40 mt-1">
+                          {session.timestamp.toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => onDeleteSession(session.id)}
+                    className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 p-1 text-sidebar-foreground/60 hover:text-destructive"
+                    disabled={isDeletingSession === session.id}
+                  >
+                    {isDeletingSession === session.id ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3 h-3" />
+                    )}
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </ScrollArea>
 
       <Separator />
