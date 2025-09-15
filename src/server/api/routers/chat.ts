@@ -139,7 +139,7 @@ export const chatRouter = createTRPCRouter({
       messagesForAI.push({ role: 'user', content: input.message });
 
       // Generate AI response using Hugging Face
-      let aiResponse = await openaiService.generateResponse(messagesForAI);
+      const aiResponse = await openaiService.generateResponse(messagesForAI);
 
       // Create AI message
       const aiMessage = await ctx.db.messages.create({
