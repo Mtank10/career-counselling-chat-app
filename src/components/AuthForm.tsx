@@ -61,6 +61,7 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
 
   return (
     <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
+      <h1 className='text-muted-foreground text-lg p-4'>Career Counselling Chat AI</h1>
       <h2 className="text-2xl font-bold text-center mb-6">
         {mode === 'signin' ? 'Sign In' : 'Sign Up'}
       </h2>
