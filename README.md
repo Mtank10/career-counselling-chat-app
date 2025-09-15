@@ -2,6 +2,10 @@
 
 This repository contains a full-stack career counseling chat application built with Next.js, TypeScript, tRPC, TanStack Query (React Query), Prisma ORM, and a Neon PostgreSQL database. The app integrates AI APIs to provide career guidance through conversational chat sessions.
 
+screensort:
+![Chat interface screenshot](public/careerpage.png)
+
+
 ---
 
 ## Technology Stack
