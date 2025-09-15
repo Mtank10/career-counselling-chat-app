@@ -30,7 +30,7 @@ export const useChat = () => {
   );
   const createSession = trpc.chat.createSession.useMutation();
   const sendMessageMutation = trpc.chat.sendMessage.useMutation();
-  // const deleteSession = trpc.chat.deleteSession.useMutation();
+   const deleteSession = trpc.chat.deleteSession.useMutation();
 
   const createNewSession = useCallback(async () => {
     const session = await createSession.mutateAsync({});
@@ -62,15 +62,15 @@ export const useChat = () => {
     setCurrentSessionId(sessionId);
   }, []);
 
-  // const handleDeleteSession = useCallback(async (sessionId: string) => {
-  //   await deleteSession.mutateAsync({ id: sessionId });
-  //   await refetchSessions();
+  const handleDeleteSession = useCallback(async (sessionId: string) => {
+    await deleteSession.mutateAsync({ id: sessionId });
+    await refetchSessions();
     
-  //   // If we're deleting the current session, clear it
-  //   if (currentSessionId === sessionId) {
-  //     setCurrentSessionId(null);
-  //   }
-  // }, [currentSessionId, deleteSession, refetchSessions]);
+    // If we're deleting the current session, clear it
+    if (currentSessionId === sessionId) {
+      setCurrentSessionId(null);
+    }
+  }, [currentSessionId, deleteSession, refetchSessions]);
 
   return {
     sessions: sessions.map(session => ({
@@ -101,7 +101,7 @@ export const useChat = () => {
     sendMessage,
     createNewSession,
     selectSession,
-    // deleteSession: handleDeleteSession,
+    deleteSession: handleDeleteSession,
     currentSessionId,
   };
 };

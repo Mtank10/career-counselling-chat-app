@@ -89,31 +89,49 @@ export const chatRouter = createTRPCRouter({
         throw new Error('Session not found or access denied');
       }
 
-      // Create user message
+      // Get current message count for sequence number
+      const messageCount = await ctx.db.messages.count({
+        where: { chat_session_id: input.sessionId },
+      });
+
+      // Create user message immediately
       const userMessage = await ctx.db.messages.create({
         data: {
           chat_session_id: input.sessionId,
           role: 'user',
           content: input.message,
-          sequence_number: (await ctx.db.messages.count({
-            where: { chat_session_id: input.sessionId },
-          })) + 1,
+          sequence_number: messageCount + 1,
         },
       });
 
-      // Update session updatedAt timestamp
-      await ctx.db.chat_sessions.update({
-        where: { id: input.sessionId },
-        data: { updated_at: new Date() },
-      });
+      // Update session title if it's the first message
+      if (messageCount === 0) {
+        const title = input.message.length > 40 
+          ? input.message.substring(0, 40) + '...' 
+          : input.message;
+        
+        await ctx.db.chat_sessions.update({
+          where: { id: input.sessionId },
+          data: { title, updated_at: new Date() },
+        });
+      } else {
+        // Just update the timestamp
+        await ctx.db.chat_sessions.update({
+          where: { id: input.sessionId },
+          data: { updated_at: new Date() },
+        });
+      }
 
-      // Get conversation history for context
+      // Get conversation history for context (excluding the just-created message)
       const previousMessages = await ctx.db.messages.findMany({
-        where: { chat_session_id: input.sessionId },
+        where: { 
+          chat_session_id: input.sessionId,
+          id: { not: userMessage.id } // Exclude the current user message
+        },
         orderBy: { created_at: 'asc' },
       });
 
-      // Format messages for Hugging Face API
+      // Format messages for AI
       const messagesForAI = previousMessages.map(msg => ({
         role: msg.role,
         content: msg.content,
@@ -122,34 +140,41 @@ export const chatRouter = createTRPCRouter({
       // Add the current user message
       messagesForAI.push({ role: 'user', content: input.message });
 
-      // Generate AI response using Hugging Face
-      const aiResponse = await openaiService.generateResponse(messagesForAI);
+      // Generate AI response using Gemini (non-blocking)
+      let aiResponse = "I'm thinking...";
+      
+      // Send the AI response generation to the background
+      setTimeout(async () => {
+        try {
+          const fullAiResponse = await openaiService.generateResponse(messagesForAI);
+          
+          // Update the AI message with the actual response
+          await ctx.db.messages.update({
+            where: { id: aiMessage.id },
+            data: { content: fullAiResponse },
+          });
+        } catch (error) {
+          console.error("Error generating AI response:", error);
+          await ctx.db.messages.update({
+            where: { id: aiMessage.id },
+            data: { content: "Sorry, I encountered an error processing your request." },
+          });
+        }
+      }, 0);
 
-      // Create AI message
+      // Create AI message immediately with a placeholder
       const aiMessage = await ctx.db.messages.create({
         data: {
           chat_session_id: input.sessionId,
           role: 'assistant',
-          content: aiResponse,
-          sequence_number: userMessage.sequence_number + 1,
+          content: aiResponse, // Placeholder
+          sequence_number: messageCount + 2,
         },
       });
 
-      // Update session title if it's the first message
-      if (previousMessages.length === 0) {
-        const title = input.message.length > 40 
-          ? input.message.substring(0, 40) + '...' 
-          : input.message;
-        
-        await ctx.db.chat_sessions.update({
-          where: { id: input.sessionId },
-          data: { title },
-        });
-      }
-
       return {
         userMessage,
-        aiMessage,
+        aiMessage: { ...aiMessage, content: "Thinking..." }, // Return placeholder
       };
     }),
 

@@ -26,7 +26,7 @@ export const ChatSidebar = ({
   sessions, 
   onNewChat, 
   onSelectSession, 
-  // onDeleteSession,
+  onDeleteSession,
   activeSessionId 
 }: ChatSidebarProps) => {
   return (
@@ -60,7 +60,7 @@ export const ChatSidebar = ({
             <div
               key={session.id}
               className={cn(
-                "group p-3 rounded-lg transition-colors hover:bg-sidebar-accent relative",
+                "group p-3 rounded-lg transition-colors hover:bg-gray-600 relative",
                 activeSessionId === session.id && "bg-sidebar-accent border border-sidebar-ring"
               )}
             >
@@ -69,7 +69,7 @@ export const ChatSidebar = ({
                 className="w-full text-left"
               >
                 <div className="flex items-start gap-2">
-                  <MessageSquare className="w-4 h-4 mt-0.5 text-white/60 flex-shrink-0" />
+                  <MessageSquare className="w-4 h-4 mt-0.5 text-white/60 flex-shrink-0 " />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm text-white truncate">
                       {session.title}
@@ -85,7 +85,7 @@ export const ChatSidebar = ({
               </button>
               
               <button
-                // onClick={() => onDeleteSession(session.id)}
+                onClick={() => onDeleteSession(session.id)}
                 className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 p-1 text-sidebar-foreground/60 hover:text-destructive"
               >
                 <Trash2 className="w-3 h-3" />

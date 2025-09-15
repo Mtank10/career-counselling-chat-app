@@ -16,7 +16,7 @@ export default function Home() {
     sendMessage,
     createNewSession,
     selectSession,
-    // deleteSession,
+    deleteSession,
     currentSessionId
   } = useChat();
 
@@ -38,7 +38,7 @@ export default function Home() {
         sessions={sessions}
         onNewChat={createNewSession}
         onSelectSession={selectSession}
-        // onDeleteSession={deleteSession}
+        onDeleteSession={deleteSession}
         activeSessionId={currentSessionId}
       />
       <div className="flex-1">
