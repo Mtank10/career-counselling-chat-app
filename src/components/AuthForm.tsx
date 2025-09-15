@@ -60,7 +60,7 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Header with application name */}
+      {/* Header with application name
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center">
@@ -69,7 +69,7 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
             </div>
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* Main content */}
       <main className="flex-grow flex flex-col justify-center py-12 sm:px-6 lg:px-8">
