@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '@/lib/trpc/server';
-import { HuggingFaceService } from '@/server/service/ai/huggingface';
+import {GoogleGeminiService } from '@/server/service/ai/aiservice';
 
-const hfService = new HuggingFaceService(process.env.HUGGINGFACE_API_KEY!);
+const openaiService = new GoogleGeminiService();
 
 export const chatRouter = createTRPCRouter({
   createSession: protectedProcedure
@@ -11,7 +11,7 @@ export const chatRouter = createTRPCRouter({
       if (!ctx.session.user) {
         throw new Error('User not authenticated');
       }
-
+      
       return ctx.db.chat_sessions.create({
         data: {
           title: 'New Conversation',
@@ -95,7 +95,6 @@ export const chatRouter = createTRPCRouter({
           chat_session_id: input.sessionId,
           role: 'user',
           content: input.message,
-          ai_model: 'microsoft/DialoGPT-large',
           sequence_number: (await ctx.db.messages.count({
             where: { chat_session_id: input.sessionId },
           })) + 1,
@@ -124,7 +123,7 @@ export const chatRouter = createTRPCRouter({
       messagesForAI.push({ role: 'user', content: input.message });
 
       // Generate AI response using Hugging Face
-      const aiResponse = await hfService.generateResponse(messagesForAI);
+      const aiResponse = await openaiService.generateResponse(messagesForAI);
 
       // Create AI message
       const aiMessage = await ctx.db.messages.create({
@@ -132,7 +131,6 @@ export const chatRouter = createTRPCRouter({
           chat_session_id: input.sessionId,
           role: 'assistant',
           content: aiResponse,
-          ai_model: 'microsoft/DialoGPT-large',
           sequence_number: userMessage.sequence_number + 1,
         },
       });
