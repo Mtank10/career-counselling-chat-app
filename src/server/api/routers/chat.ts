@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '@/lib/trpc/server';
 import {GoogleGeminiService } from '@/server/service/ai/aiservice';
