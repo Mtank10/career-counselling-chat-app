@@ -1,5 +1,3 @@
-
-
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '@/lib/trpc/server';
 import {GoogleGeminiService } from '@/server/service/ai/aiservice';
@@ -90,23 +88,21 @@ export const chatRouter = createTRPCRouter({
       if (!session) {
         throw new Error('Session not found or access denied');
       }
-
+      
+      // Get current message count for sequence number
+      const messageCount = await ctx.db.messages.count({
+        where: { chat_session_id: input.sessionId },
+      });
       // Create user message
       const userMessage = await ctx.db.messages.create({
         data: {
           chat_session_id: input.sessionId,
           role: 'user',
           content: input.message,
-          sequence_number: (await ctx.db.messages.count({
-            where: { chat_session_id: input.sessionId },
-          })) + 1,
+          sequence_number: messageCount + 1,
         },
       });
-      const messageCount = await ctx.db.messages.count({
-        where: { chat_session_id: input.sessionId },
-      });
-      
-       // Update session title if it's the first message
+       
       if (messageCount === 0) {
         const title = input.message.length > 40 
           ? input.message.substring(0, 40) + '...' 
@@ -123,11 +119,13 @@ export const chatRouter = createTRPCRouter({
           data: { updated_at: new Date() },
         });
       }
-      
 
-      // Get conversation history for context
+     // Get conversation history for context (excluding the just-created message)
       const previousMessages = await ctx.db.messages.findMany({
-        where: { chat_session_id: input.sessionId },
+        where: { 
+          chat_session_id: input.sessionId,
+          id: { not: userMessage.id } // Exclude the current user message
+        },
         orderBy: { created_at: 'asc' },
       });
 
@@ -153,17 +151,6 @@ export const chatRouter = createTRPCRouter({
         },
       });
 
-      // Update session title if it's the first message
-      if (previousMessages.length === 0) {
-        const title = input.message.length > 40 
-          ? input.message.substring(0, 40) + '...' 
-          : input.message;
-        
-        await ctx.db.chat_sessions.update({
-          where: { id: input.sessionId },
-          data: { title },
-        });
-      }
 
       return {
         userMessage,
