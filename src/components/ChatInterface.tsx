@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Sparkles, Bot, User } from "lucide-react";
+import { Send, Sparkles, Bot, User, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -20,6 +20,7 @@ interface ChatInterfaceProps {
   messages: Message[];
   onSendMessage: (message: string) => void;
   isLoading?: boolean;
+  onOpenSidebar?: () => void;
 }
 
 const starterPrompts = [
@@ -43,14 +44,17 @@ const starterPrompts = [
   }
 ];
 
-export const ChatInterface = ({ messages, onSendMessage, isLoading }: ChatInterfaceProps) => {
+export const ChatInterface = ({ messages, onSendMessage, isLoading, onOpenSidebar }: ChatInterfaceProps) => {
   const [inputValue, setInputValue] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
     }
   }, [messages]);
 
@@ -75,9 +79,21 @@ export const ChatInterface = ({ messages, onSendMessage, isLoading }: ChatInterf
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-background relative">
+      {/* Mobile menu button */}
+      {onOpenSidebar && (
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={onOpenSidebar}
+          className="lg:hidden absolute top-4 left-4 z-10 bg-sidebar-primary text-white hover:bg-sidebar-accent"
+        >
+          <Menu className="w-5 h-5" />
+        </Button>
+      )}
+
       {isEmpty && (
-        <div className="flex-1 flex flex-col items-center justify-center p-8">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 lg:pt-8 pt-16">
           <div className="text-center mb-8">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-ai flex items-center justify-center shadow-ai-glow">
               <Sparkles className="w-8 h-8 text-white" />
@@ -86,7 +102,7 @@ export const ChatInterface = ({ messages, onSendMessage, isLoading }: ChatInterf
               How can I help with your career?
             </h1>
             <p className="text-muted-foreground text-lg">
-              Welcome to your AI career counselor. Lets discuss your professional journey.
+              Welcome to your AI career counselor. Let's discuss your professional journey.
             </p>
           </div>
 
@@ -110,7 +126,7 @@ export const ChatInterface = ({ messages, onSendMessage, isLoading }: ChatInterf
       )}
 
       {!isEmpty && (
-        <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+        <ScrollArea className="flex-1 p-4 lg:pt-4 pt-16" ref={scrollAreaRef}>
           <div className="space-y-6 max-w-4xl mx-auto">
             {messages.map((message) => (
               <div

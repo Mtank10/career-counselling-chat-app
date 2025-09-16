@@ -2,13 +2,15 @@
 
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
+import { useState } from 'react';
 import { ChatSidebar } from '@/components/ChatSidebar';
 import { ChatInterface } from '@/components/ChatInterface';
 import { useChat } from '@/hooks/useChat';
 
 export default function Home() {
   const { data: session, status } = useSession();
-
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
   const {
     sessions,
     currentSession,
@@ -19,6 +21,10 @@ export default function Home() {
     deleteSession,
     currentSessionId
   } = useChat();
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
   if (status === 'loading') {
     return (
@@ -40,12 +46,24 @@ export default function Home() {
         onSelectSession={selectSession}
         onDeleteSession={deleteSession}
         activeSessionId={currentSessionId}
+        isMobileOpen={isSidebarOpen}
+        onMobileToggle={toggleSidebar}
       />
+      
+      {/* Overlay for mobile when sidebar is open */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={toggleSidebar}
+        />
+      )}
+      
       <div className="flex-1">
         <ChatInterface
           messages={currentSession?.messages || []}
           onSendMessage={sendMessage}
           isLoading={isLoading}
+          onOpenSidebar={toggleSidebar}
         />
       </div>
     </div>
