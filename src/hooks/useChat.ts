@@ -20,6 +20,8 @@ export interface ChatSession {
 
 export const useChat = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
   
   // tRPC queries and mutations
   const utils = trpc.useUtils();
@@ -32,9 +34,17 @@ export const useChat = () => {
   const sendMessageMutation = trpc.chat.sendMessage.useMutation();
    const deleteSession = trpc.chat.deleteSession.useMutation();
 
+  // Clear optimistic messages when session changes
+  const selectSession = useCallback((sessionId: string) => {
+    setCurrentSessionId(sessionId);
+    setOptimisticMessages([]);
+    setIsStreaming(false);
+  }, []);
   const createNewSession = useCallback(async () => {
     const session = await createSession.mutateAsync({});
     setCurrentSessionId(session.id);
+    setOptimisticMessages([]);
+    setIsStreaming(false);
     await refetchSessions();
     return session.id;
   }, [createSession, refetchSessions]);
@@ -49,29 +59,82 @@ export const useChat = () => {
       sessionId = await createNewSession();
     }
 
-    await sendMessageMutation.mutateAsync({
-      sessionId: sessionId!,
-      message: content,
-    });
+    // Add user message immediately (optimistic update)
+    const userMessage: Message = {
+      id: `temp-user-${Date.now()}`,
+      content,
+      role: "user",
+      timestamp: new Date(),
+    };
 
-    // Refresh the session to get updated messages
-    await refetchSession();
+    // Add AI typing indicator
+    const aiTypingMessage: Message = {
+      id: `temp-ai-${Date.now()}`,
+      content: "",
+      role: "assistant",
+      timestamp: new Date(),
+      isStreaming: true,
+    };
+
+    setOptimisticMessages([userMessage, aiTypingMessage]);
+    setIsStreaming(true);
+    try {
+      await sendMessageMutation.mutateAsync({
+        sessionId: sessionId!,
+        message: content,
+      });
+
+      // Clear optimistic messages and refresh
+      setOptimisticMessages([]);
+      setIsStreaming(false);
+      await refetchSession();
+      await refetchSessions(); // Update sidebar titles
+    } catch (error) {
+      // Remove optimistic messages on error
+      setOptimisticMessages([]);
+      setIsStreaming(false);
+      console.error('Failed to send message:', error);
+    }
   }, [currentSessionId, createNewSession, sendMessageMutation, refetchSession]);
 
-  const selectSession = useCallback((sessionId: string) => {
-    setCurrentSessionId(sessionId);
-  }, []);
 
   const handleDeleteSession = useCallback(async (sessionId: string) => {
-    await deleteSession.mutateAsync({ id: sessionId });
-    await refetchSessions();
+    // Optimistic update - remove from UI immediately
+    await utils.chat.getSessions.cancel();
+    const previousSessions = utils.chat.getSessions.getData() ?? [];
     
-    // If we're deleting the current session, clear it
-    if (currentSessionId === sessionId) {
-      setCurrentSessionId(null);
+    // Update cache optimistically
+    utils.chat.getSessions.setData(undefined, (old) => 
+      old?.filter(session => session.id !== sessionId) ?? []
+    );
+
+    try {
+      await deleteSession.mutateAsync({ id: sessionId });
+      
+      // If we're deleting the current session, clear it
+      if (currentSessionId === sessionId) {
+        setCurrentSessionId(null);
+        setOptimisticMessages([]);
+        setIsStreaming(false);
+      }
+    } catch (error) {
+      // Revert optimistic update on error
+      utils.chat.getSessions.setData(undefined, previousSessions);
+      console.error('Failed to delete session:', error);
     }
   }, [currentSessionId, deleteSession, refetchSessions]);
 
+  // Combine real messages with optimistic messages
+  const getCurrentMessages = useCallback(() => {
+    const realMessages = currentSession?.messages.map(msg => ({
+      id: msg.id,
+      content: msg.content,
+      role: msg.role as "user" | "assistant",
+      timestamp: msg.created_at,
+    })) || [];
+    
+    return [...realMessages, ...optimisticMessages];
+  }, [currentSession, optimisticMessages]);
   return {
     sessions: sessions.map(session => ({
       id: session.id,
@@ -90,14 +153,9 @@ export const useChat = () => {
       title: currentSession.title,
       lastMessage: currentSession.messages[currentSession.messages.length - 1]?.content || "",
       timestamp: currentSession.updated_at,
-      messages: currentSession.messages.map(msg => ({
-        id: msg.id,
-        content: msg.content,
-        role: msg.role as "user" | "assistant",
-        timestamp: msg.created_at,
-      })),
+      messages: getCurrentMessages(),
     } : null,
-    isLoading: sendMessageMutation.isPending,
+    isLoading: sendMessageMutation.isPending || isStreaming,
     sendMessage,
     createNewSession,
     selectSession,

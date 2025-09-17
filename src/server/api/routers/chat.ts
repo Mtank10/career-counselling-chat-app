@@ -103,6 +103,7 @@ export const chatRouter = createTRPCRouter({
         },
       });
        
+      // Update session title and timestamp immediately after user message
       if (messageCount === 0) {
         const title = input.message.length > 40 
           ? input.message.substring(0, 10) + '...' 
@@ -151,6 +152,11 @@ export const chatRouter = createTRPCRouter({
         },
       });
 
+      // Update session timestamp after AI response
+      await ctx.db.chat_sessions.update({
+        where: { id: input.sessionId },
+        data: { updated_at: new Date() },
+      });
 
       return {
         userMessage,

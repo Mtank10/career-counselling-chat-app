@@ -130,6 +130,7 @@ export const ChatSidebar = ({
               
               <button
                 onClick={() => onDeleteSession(session.id)}
+                data-session-id={session.id}
                 className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 p-1 text-sidebar-foreground/60 hover:text-red-600 cursor-pointer transition"
               >
                 <Trash2 className="w-3 h-3" />

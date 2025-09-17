@@ -14,6 +14,7 @@ interface Message {
   content: string;
   role: "user" | "assistant";
   timestamp: Date;
+  isStreaming?: boolean;
 }
 
 interface ChatInterfaceProps {
@@ -23,6 +24,47 @@ interface ChatInterfaceProps {
   onOpenSidebar?: () => void;
 }
 
+// Typing indicator component
+const TypingIndicator = () => (
+  <div className="flex space-x-1">
+    <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+    <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+    <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+  </div>
+);
+
+// Message content formatter
+const FormattedMessageContent = ({ content }: { content: string }) => {
+  // Split content into paragraphs and format
+  const paragraphs = content.split('\n\n').filter(p => p.trim());
+  
+  return (
+    <div className="space-y-3">
+      {paragraphs.map((paragraph, index) => {
+        // Check if it's a list
+        if (paragraph.includes('•') || paragraph.match(/^\d+\./m)) {
+          const items = paragraph.split('\n').filter(item => item.trim());
+          return (
+            <ul key={index} className="space-y-1 ml-4">
+              {items.map((item, itemIndex) => (
+                <li key={itemIndex} className="text-sm leading-relaxed">
+                  {item.replace(/^[•\-\*]\s*/, '').replace(/^\d+\.\s*/, '')}
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        
+        // Regular paragraph
+        return (
+          <p key={index} className="text-sm leading-relaxed whitespace-pre-wrap">
+            {paragraph}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
 const starterPrompts = [
   {
     title: "Career Path Planning",
@@ -152,12 +194,20 @@ export const ChatInterface = ({ messages, onSendMessage, isLoading, onOpenSideba
                       : "bg-card border border-border"
                   )}
                 >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  {message.isStreaming ? (
+                    <TypingIndicator />
+                  ) : (
+                    message.role === "assistant" ? (
+                      <FormattedMessageContent content={message.content} />
+                    ) : (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                    )
+                  )}
                   <span className={cn(
                     "text-xs mt-2 block",
                     message.role === "user" ? "text-white/70" : "text-muted-foreground"
                   )}>
-                    {message.timestamp.toLocaleTimeString()}
+                    {!message.isStreaming && message.timestamp.toLocaleTimeString()}
                   </span>
                 </div>
 
@@ -171,22 +221,6 @@ export const ChatInterface = ({ messages, onSendMessage, isLoading, onOpenSideba
               </div>
             ))}
 
-            {isLoading && (
-              <div className="flex gap-3">
-                <Avatar className="w-8 h-8">
-                  <AvatarFallback className="bg-gradient-ai text-white">
-                    <Bot className="w-4 h-4" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="bg-card border border-border rounded-2xl px-4 py-3">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </ScrollArea>
       )}
